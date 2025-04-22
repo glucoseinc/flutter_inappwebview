@@ -1877,25 +1877,69 @@ public class InAppWebView: WKWebView, UIScrollViewDelegate, WKUIDelegate,
                                                             contentLength: response.expectedContentLength,
                                                             suggestedFilename: suggestedFilename,
                                                             textEncodingName: response.textEncodingName)
-            channelDelegate?.onDownloadStarting(request: downloadStartRequest)
+
+          let callback = WebViewChannelDelegate.onDownloadStartingCallback()
+          var completionHandlerCalled = false
+          callback.nonNullSuccess = { (response: DownloadStartResponse) in
+            completionHandlerCalled = true
+            if let path = response.resultFilePath {
+              completionHandler(URL(fileURLWithPath: path))
+            } else {
+              completionHandler(nil)
+            }
+            return false
+          }
+          callback.defaultBehaviour = { (response: DownloadStartResponse?) in
+            if !completionHandlerCalled {
+              completionHandlerCalled = true
+              completionHandler(nil)
+            }
+          }
+          callback.error = { [weak callback] (code: String, message: String?, details: Any?) in
+            print(code + ", " + (message ?? ""))
+            callback?.defaultBehaviour(nil)
+          }
+          
+          channelDelegate?.onDownloadStarting(request: downloadStartRequest, callback: callback)
+          return
         }
         download.delegate = nil
         // cancel the download
         completionHandler(nil)
     }
+  
+  @available(iOS 14.5, *)
+  public func webView(_ webView: WKWebView,  navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+    
+    if let url = navigationAction.request.url, let useOnDownloadStart = settings?.useOnDownloadStart, useOnDownloadStart {
+//      let downloadStartRequest = DownloadStartRequest(url: url.absoluteString,
+//                                                      userAgent: nil,
+//                                                      contentDisposition: nil,
+//                                                      mimeType: response.mimeType,
+//                                                      contentLength: response.expectedContentLength,
+//                                                      suggestedFilename: response.suggestedFilename,
+//                                                      textEncodingName: response.textEncodingName)
+////      channelDelegate?.onDownloadStarting(request: downloadStartRequest)
+      download.delegate = self
+      return
+    }
+    download.delegate = nil
+  }
     
     @available(iOS 14.5, *)
     public func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
         let response = navigationResponse.response
         if let url = response.url, let useOnDownloadStart = settings?.useOnDownloadStart, useOnDownloadStart {
-            let downloadStartRequest = DownloadStartRequest(url: url.absoluteString,
-                                                            userAgent: nil,
-                                                            contentDisposition: nil,
-                                                            mimeType: response.mimeType,
-                                                            contentLength: response.expectedContentLength,
-                                                            suggestedFilename: response.suggestedFilename,
-                                                            textEncodingName: response.textEncodingName)
-            channelDelegate?.onDownloadStarting(request: downloadStartRequest)
+//            let downloadStartRequest = DownloadStartRequest(url: url.absoluteString,
+//                                                            userAgent: nil,
+//                                                            contentDisposition: nil,
+//                                                            mimeType: response.mimeType,
+//                                                            contentLength: response.expectedContentLength,
+//                                                            suggestedFilename: response.suggestedFilename,
+//                                                            textEncodingName: response.textEncodingName)
+//
+//          channelDelegate?.onDownloadStarting(request: downloadStartRequest)
+          return
         }
         download.delegate = nil
     }

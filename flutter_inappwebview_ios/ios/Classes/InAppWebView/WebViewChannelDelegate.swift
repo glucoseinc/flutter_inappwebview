@@ -736,10 +736,27 @@ public class WebViewChannelDelegate: ChannelDelegate {
         ]
         channel?.invokeMethod("onContentSizeChanged", arguments: arguments)
     }
-    
-    public func onDownloadStarting(request: DownloadStartRequest) {
-        channel?.invokeMethod("onDownloadStarting", arguments: request.toMap())
+
+  public func onDownloadStarting(request: DownloadStartRequest) {
+    channel?.invokeMethod("onDownloadStarting", arguments: request.toMap())
+  }
+
+  public func onDownloadStarting(request: DownloadStartRequest, callback: onDownloadStartingCallback) {
+        channel?.invokeMethod("onDownloadStarting", arguments: request.toMap(), callback: callback)
     }
+  
+  public class onDownloadStartingCallback: BaseCallbackResult<DownloadStartResponse> {
+    override init() {
+      super.init()
+      self.decodeResult = { (obj: Any?) in
+        return DownloadStartResponse.fromMap(map: obj as? [String:Any?])
+      }
+    }
+    
+    deinit {
+      self.defaultBehaviour(nil)
+    }
+  }
     
     public func onCreateContextMenu(hitTestResult: HitTestResult) {
         channel?.invokeMethod("onCreateContextMenu", arguments: hitTestResult.toMap())
